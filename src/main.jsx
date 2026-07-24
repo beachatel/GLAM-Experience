@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-
-const painting =
-  "https://upload.wikimedia.org/wikipedia/commons/4/40/The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg";
+import { artifactsById } from './data/artifacts'
 
 function BackIcon() {
   return (
@@ -65,120 +63,100 @@ function SparkIcon() {
   );
 }
 
-function App() {
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([]);
+function readArtifactId(value) {
+  try {
+    const url = new URL(value)
+    return url.searchParams.get('id') || url.pathname.split('/').filter(Boolean).pop()
+  } catch {
+    return value.trim().toLowerCase()
+  }
+}
 
+function Scanner({ onFound }) {
+  const videoRef = useRef(null)
+  const [status, setStatus] = useState('Opening camera…')
+  const [manualId, setManualId] = useState('')
+
+  useEffect(() => {
+    let stream
+    let frame
+    let stopped = false
+    const start = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus('Camera access is not available in this browser.')
+        return
+      }
+      if (!window.BarcodeDetector) {
+        setStatus('QR scanning is not supported here. Enter an object ID below.')
+        return
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+        if (stopped || !videoRef.current) return
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+        setStatus('Point your camera at an artwork QR code')
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+        const scan = async () => {
+          if (stopped || !videoRef.current) return
+          try {
+            const codes = await detector.detect(videoRef.current)
+            if (codes[0]?.rawValue) onFound(codes[0].rawValue)
+          } catch { /* keep the camera open if a frame cannot be read */ }
+          frame = requestAnimationFrame(scan)
+        }
+        scan()
+      } catch {
+        setStatus('Camera permission was not granted. Enter an object ID below.')
+      }
+    }
+    start()
+    return () => {
+      stopped = true
+      cancelAnimationFrame(frame)
+      stream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [onFound])
+
+  return <main className="app-shell scanner-page">
+    <header className="topbar scanner-bar"><p>Belvedere Museum</p></header>
+    <section className="scanner-copy"><p className="eyebrow">Museum companion</p><h1>Find an artwork</h1><p>Scan the QR code beside any object to begin a conversation.</p></section>
+    <section className="camera-frame" aria-label="QR code scanner"><video ref={videoRef} muted playsInline /><div className="scan-corners" /><p>{status}</p></section>
+    <form className="manual-lookup" onSubmit={(event) => { event.preventDefault(); onFound(manualId) }}>
+      <label htmlFor="object-id">Or enter an object ID</label>
+      <div><input id="object-id" value={manualId} onChange={(event) => setManualId(event.target.value)} placeholder="e.g. the-kiss" /><button type="submit">Open</button></div>
+    </form>
+    <button className="test-link" onClick={() => onFound('the-kiss')}>View test artwork — The Kiss</button>
+  </main>
+}
+
+function Artwork({ artifact, onBack }) {
+  const [question, setQuestion] = useState('')
+  const [messages, setMessages] = useState([])
   const ask = (value = question) => {
-    const text = value.trim();
-    if (!text) return;
-    setMessages((current) => [
-      ...current,
-      { author: "you", text },
-      {
-        author: "guide",
-        text: "I’m ready to help you look closer. Full AI responses will be available here soon.",
-      },
-    ]);
-    setQuestion("");
-  };
+    const text = value.trim()
+    if (!text) return
+    setMessages((current) => [...current, { author: 'you', text }, { author: 'guide', text: 'I’m ready to help you look closer. Full AI responses will be available here soon.' }])
+    setQuestion('')
+  }
+  const fields = [['Medium', artifact.medium], ['Location', artifact.location], ['Movement', artifact.movement], ['Dimensions', artifact.dimensions]]
+  return <main className="app-shell">
+    <header className="topbar"><button className="icon-button" onClick={onBack} aria-label="Back to scanner"><BackIcon /></button><p>{artifact.museum}</p></header>
+    <section className="hero" aria-label="Artwork image"><img src={artifact.image} alt={`${artifact.title} by ${artifact.artist}`} /><span className="image-credit">{artifact.imageCredit}</span></section>
+    <section className="artwork-info"><h1>{artifact.title}</h1><p className="artist">{artifact.artist} <span>·</span> {artifact.date}</p><div className="details-grid">{fields.map(([label, value]) => <div key={label}><span>{label}</span><p>{value}</p></div>)}</div></section>
+    <section className="conversation" aria-labelledby="conversation-title"><div className="section-title"><div className="spark"><SparkIcon /></div><div><p className="eyebrow">Your museum guide</p><h2 id="conversation-title">Look closer</h2></div></div><p className="intro">Ask about the symbols, materials, or the story behind this work.</p>{messages.length === 0 ? <div className="prompts">{artifact.prompts.map((prompt) => <button key={prompt} onClick={() => ask(prompt)}>{prompt}</button>)}</div> : <div className="messages" aria-live="polite">{messages.map((message, index) => <p key={index} className={message.author}>{message.text}</p>)}</div>}</section>
+    <form className="composer" onSubmit={(event) => { event.preventDefault(); ask() }}><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about this artwork" aria-label="Ask about this artwork" /><button type="submit" aria-label="Send question" className={question.trim() ? 'ready' : ''}>↑</button></form>
+  </main>
+}
 
-  return (
-    <main className="app-shell">
-      <header className="topbar">
-        <button className="icon-button" aria-label="Back">
-          <BackIcon />
-        </button>
-        <p>Current Museum/Gallery Name</p>
-      </header>
-
-      <section className="hero" aria-label="Artwork image">
-        <img src={painting} alt="The Kiss by Gustav Klimt" />
-        <span className="image-credit">Gustav Klimt, The Kiss, 1907–08</span>
-      </section>
-
-      <section className="artwork-info">
-        <h1>The Kiss</h1>
-        <p className="artist">
-          Gustav Klimt <span>·</span> 1907–08
-        </p>
-
-        <div className="details-grid">
-          <div>
-            <span>Medium</span>
-            <p>Oil and gold leaf on canvas</p>
-          </div>
-          <div>
-            <span>Location</span>
-            <p>Upper Belvedere, Vienna</p>
-          </div>
-          <div>
-            <span>Movement</span>
-            <p>Viennese Secession</p>
-          </div>
-          <div>
-            <span>Dimensions</span>
-            <p>180 × 180 cm</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="conversation" aria-labelledby="conversation-title">
-        <div className="section-title">
-          <div className="spark">
-            <SparkIcon />
-          </div>
-          <div>
-            <p className="eyebrow">Your museum guide</p>
-            <h2 id="conversation-title">Look closer</h2>
-          </div>
-        </div>
-        <p className="intro">
-          Ask about the symbols, materials, or the story behind this work.
-        </p>
-        {messages.length === 0 ? (
-          <div className="prompts">
-            <button onClick={() => ask("Why is there so much gold?")}>
-              Why is there so much gold?
-            </button>
-            <button onClick={() => ask("Tell me about the flowers")}>
-              Tell me about the flowers
-            </button>
-          </div>
-        ) : (
-          <div className="messages" aria-live="polite">
-            {messages.map((message, index) => (
-              <p key={index} className={message.author}>
-                {message.text}
-              </p>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <form
-        className="composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          ask();
-        }}
-      >
-        <input
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask about this artwork"
-          aria-label="Ask about this artwork"
-        />
-        <button
-          type="submit"
-          aria-label="Send question"
-          className={question.trim() ? "ready" : ""}
-        >
-          ↑
-        </button>
-      </form>
-    </main>
-  );
+function App() {
+  const [artifact, setArtifact] = useState(artifactsById['the-kiss'])
+  const [screen, setScreen] = useState('artwork')
+  const openFromCode = (code) => {
+    const result = artifactsById[readArtifactId(code)]
+    if (result) { setArtifact(result); setScreen('artwork') }
+  }
+  return screen === 'scanner' ? <Scanner onFound={openFromCode} /> : <Artwork artifact={artifact} onBack={() => setScreen('scanner')} />
 }
 
 createRoot(document.getElementById("root")).render(<App />);
