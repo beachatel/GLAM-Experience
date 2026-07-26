@@ -14,7 +14,8 @@ DATA_DIR = Path(__file__).parent / "data"
 PAINTINGS_DIR = DATA_DIR / "paintings"
 MODEL_ID = os.getenv("MODEL_ID", "HuggingFaceTB/SmolLM2-135M-Instruct")
 
-app = Flask(__name__)
+# app = Flask(__name__) // Old before render deploy
+app = Flask(__name__, static_folder="../dist", static_url_path="")
 
 
 @lru_cache(maxsize=1)
@@ -200,6 +201,14 @@ def chat():
         app.logger.exception("Guide model failed")
         return jsonify({"error": "The guide is temporarily unavailable. Please try again."}), 503
     return jsonify({"answer": response, "sources": [{key: item[key] for key in ("title", "url") if key in item} for item in passages]})
+
+
+@app.get("/", defaults={"path": ""})
+@app.get("/<path:path>")
+def serve_frontend(path):
+    if path and (Path(app.static_folder) / path).exists():
+        return app.send_static_file(path)
+    return app.send_static_file("index.html")
 
 
 if __name__ == "__main__":
