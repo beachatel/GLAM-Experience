@@ -145,24 +145,7 @@ function Scanner({ onFound }) {
         <div className="scan-corners" />
         <p>{status}</p>
       </section>
-      <form
-        className="manual-lookup"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onFound(manualId);
-        }}
-      >
-        <label htmlFor="object-id">Or enter an object ID</label>
-        <div>
-          <input
-            id="object-id"
-            value={manualId}
-            onChange={(event) => setManualId(event.target.value)}
-            placeholder="e.g. the-kiss"
-          />
-          <button type="submit">Open</button>
-        </div>
-      </form>
+
       <button className="test-link" onClick={() => onFound("the-kiss")}>
         View test artwork — The Kiss
       </button>
@@ -181,7 +164,7 @@ function Artwork({ artifact, onBack }) {
       { author: "you", text },
       {
         author: "guide",
-        text: "I’m ready to help you look closer. Full AI responses will be available here soon.",
+        text: "Full responses coming soon.",
       },
     ]);
     setQuestion("");
