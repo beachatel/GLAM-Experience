@@ -1,0 +1,27 @@
+# ---- build the frontend ----
+FROM node:20-slim AS frontend
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install
+COPY index.html vite.config.js ./
+COPY src ./src
+RUN npm run build
+
+# ---- backend runtime ----
+FROM python:3.11-slim
+WORKDIR /app
+
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Pre-download the model into the image so cold starts don't hit
+# the network — big win for Cloud Run's scale-to-zero behavior.
+RUN python -c "from transformers import pipeline; pipeline('text-generation', model='HuggingFaceTB/SmolLM2-135M-Instruct')"
+
+COPY backend ./backend
+COPY --from=frontend /app/dist ./dist
+
+WORKDIR /app/backend
+ENV PORT=8080
+EXPOSE 8080
+CMD exec gunicorn app:app --bind 0.0.0.0:${PORT} --timeout 120 --workers 1
