@@ -199,7 +199,7 @@ h2 {
   display: grid;
   gap: 8px;
 }
-.messages p {
+.messages > div p {
   margin: 0;
   padding: 10px 12px;
   font-size: 12px;
@@ -216,6 +216,19 @@ h2 {
   background: #eeece5;
   border-bottom-left-radius: 3px;
 }
+.messages small {
+  display: block;
+  margin: -2px 12px 8px;
+  color: #66635b;
+  font-size: 10px;
+}
+.messages small a,
+.messages small span {
+  margin-left: 5px;
+  color: inherit;
+}
+.messages .error p { color: #8e2e24; }
+.loading { display: grid; place-items: center; padding: 32px; color: #565550; }
 .composer {
   position: fixed;
   z-index: 2;

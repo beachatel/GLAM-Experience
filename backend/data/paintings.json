@@ -1,0 +1,38 @@
+{
+  "paintings": [
+    {
+      "id": "the-kiss",
+      "title": "The Kiss",
+      "artist": "Gustav Klimt",
+      "date": "1907–08",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/4/40/The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg",
+      "image_credit": "Gustav Klimt, The Kiss, 1907–08",
+      "museum": "Upper Belvedere, Vienna",
+      "details": [
+        { "label": "Medium", "value": "Oil and gold leaf on canvas" },
+        { "label": "Location", "value": "Upper Belvedere, Vienna" },
+        { "label": "Movement", "value": "Viennese Secession" },
+        { "label": "Dimensions", "value": "180 × 180 cm" }
+      ],
+      "suggested_questions": [
+        "Why is there so much gold?",
+        "Tell me about the flowers"
+      ],
+      "knowledge_base": [
+        {
+          "id": "belvedere-overview",
+          "title": "Belvedere: The Kiss",
+          "type": "webpage",
+          "url": "https://www.belvedere.at/en/kiss-gustav-klimt",
+          "content": "The Kiss was painted by Gustav Klimt in 1907–08, during his Golden Phase. It shows a couple in an intimate embrace against a gold ground. Klimt used oil paint with gold and silver leaf on canvas. The square work measures 180 by 180 centimetres and is in the collection of the Belvedere in Vienna."
+        },
+        {
+          "id": "visual-notes",
+          "title": "Looking closely at The Kiss",
+          "type": "note",
+          "content": "The man wears a robe with black-and-white rectangular motifs, while the woman's dress has colourful circular and floral forms. The couple stand at the edge of a flower-filled meadow. Their faces and hands are rendered more naturalistically than the highly patterned clothing and gold background. The gold ground flattens space and makes the figures feel both intimate and icon-like."
+        }
+      ]
+    }
+  ]
+}

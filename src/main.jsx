@@ -1,9 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-
-const painting =
-  "https://upload.wikimedia.org/wikipedia/commons/4/40/The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg";
 
 function BackIcon() {
   return (
@@ -68,20 +65,45 @@ function SparkIcon() {
 function App() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
+  const [artwork, setArtwork] = useState(null);
+  const [loadingArtwork, setLoadingArtwork] = useState(true);
+  const [isAsking, setIsAsking] = useState(false);
 
-  const ask = (value = question) => {
+  useEffect(() => {
+    fetch("/api/paintings/the-kiss")
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load artwork");
+        return response.json();
+      })
+      .then(setArtwork)
+      .catch(() => setArtwork(null))
+      .finally(() => setLoadingArtwork(false));
+  }, []);
+
+  const ask = async (value = question) => {
     const text = value.trim();
-    if (!text) return;
-    setMessages((current) => [
-      ...current,
-      { author: "you", text },
-      {
-        author: "guide",
-        text: "I’m ready to help you look closer. Full AI responses will be available here soon.",
-      },
-    ]);
+    if (!text || !artwork || isAsking) return;
+    setMessages((current) => [...current, { author: "you", text }]);
     setQuestion("");
+    setIsAsking(true);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ painting_id: artwork.id, question: text }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The guide could not respond.");
+      setMessages((current) => [...current, { author: "guide", text: data.answer, sources: data.sources }]);
+    } catch (error) {
+      setMessages((current) => [...current, { author: "guide error", text: error.message }]);
+    } finally {
+      setIsAsking(false);
+    }
   };
+
+  if (loadingArtwork) return <main className="app-shell loading">Loading artwork…</main>;
+  if (!artwork) return <main className="app-shell loading">Artwork data is unavailable. Start the Flask server and try again.</main>;
 
   return (
     <main className="app-shell">
@@ -89,37 +111,22 @@ function App() {
         <button className="icon-button" aria-label="Back">
           <BackIcon />
         </button>
-        <p>Current Museum/Gallery Name</p>
+        <p>{artwork.museum}</p>
       </header>
 
       <section className="hero" aria-label="Artwork image">
-        <img src={painting} alt="The Kiss by Gustav Klimt" />
-        <span className="image-credit">Gustav Klimt, The Kiss, 1907–08</span>
+        <img src={artwork.image} alt={`${artwork.title} by ${artwork.artist}`} />
+        <span className="image-credit">{artwork.image_credit}</span>
       </section>
 
       <section className="artwork-info">
-        <h1>The Kiss</h1>
+        <h1>{artwork.title}</h1>
         <p className="artist">
-          Gustav Klimt <span>·</span> 1907–08
+          {artwork.artist} <span>·</span> {artwork.date}
         </p>
 
         <div className="details-grid">
-          <div>
-            <span>Medium</span>
-            <p>Oil and gold leaf on canvas</p>
-          </div>
-          <div>
-            <span>Location</span>
-            <p>Upper Belvedere, Vienna</p>
-          </div>
-          <div>
-            <span>Movement</span>
-            <p>Viennese Secession</p>
-          </div>
-          <div>
-            <span>Dimensions</span>
-            <p>180 × 180 cm</p>
-          </div>
+          {artwork.details.map((detail) => <div key={detail.label}><span>{detail.label}</span><p>{detail.value}</p></div>)}
         </div>
       </section>
 
@@ -138,19 +145,15 @@ function App() {
         </p>
         {messages.length === 0 ? (
           <div className="prompts">
-            <button onClick={() => ask("Why is there so much gold?")}>
-              Why is there so much gold?
-            </button>
-            <button onClick={() => ask("Tell me about the flowers")}>
-              Tell me about the flowers
-            </button>
+            {artwork.suggested_questions.map((prompt) => <button key={prompt} onClick={() => ask(prompt)}>{prompt}</button>)}
           </div>
         ) : (
           <div className="messages" aria-live="polite">
             {messages.map((message, index) => (
-              <p key={index} className={message.author}>
-                {message.text}
-              </p>
+              <div key={index} className={message.author}>
+                <p>{message.text}</p>
+                {message.sources?.length > 0 && <small>Sources: {message.sources.map((source) => source.url ? <a key={source.id} href={source.url} target="_blank" rel="noreferrer">{source.title}</a> : <span key={source.id}>{source.title}</span>)}</small>}
+              </div>
             ))}
           </div>
         )}
@@ -166,13 +169,15 @@ function App() {
         <input
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask about this artwork"
+          placeholder={isAsking ? "Your guide is thinking…" : "Ask about this artwork"}
           aria-label="Ask about this artwork"
+          disabled={isAsking}
         />
         <button
           type="submit"
           aria-label="Send question"
-          className={question.trim() ? "ready" : ""}
+          className={question.trim() && !isAsking ? "ready" : ""}
+          disabled={isAsking}
         >
           ↑
         </button>
