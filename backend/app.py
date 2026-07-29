@@ -12,7 +12,11 @@ from flask import Flask, jsonify, request
 
 DATA_DIR = Path(__file__).parent / "data"
 PAINTINGS_DIR = DATA_DIR / "paintings"
-MODEL_ID = os.getenv("MODEL_ID", "HuggingFaceTB/SmolLM2-135M-Instruct")
+# Note: the "-it" (instruction-tuned) checkpoint, not the base "google/gemma-4-E2B",
+# is what has been trained to follow the system/user chat format this app relies on.
+# Gemma checkpoints are gated on Hugging Face — accept the license for this model
+# and set HF_TOKEN (or run `huggingface-cli login`) before the first call to model().
+MODEL_ID = os.getenv("MODEL_ID", "google/gemma-4-E2B-it")
 
 # app = Flask(__name__) // Old before render deploy
 app = Flask(__name__, static_folder="../dist", static_url_path="")
@@ -96,18 +100,73 @@ def is_greeting(question):
 
 
 @lru_cache(maxsize=1)
-def model():
-    from transformers import pipeline
+def _processor():
+    from transformers import AutoProcessor
 
-    return pipeline("text-generation", model=MODEL_ID, device_map="auto")
+    return AutoProcessor.from_pretrained(MODEL_ID)
+
+
+@lru_cache(maxsize=1)
+def _model():
+    from transformers import AutoModelForCausalLM
+
+    return AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        dtype="auto",
+        device_map="auto",
+    )
+
+
+def generate(messages, max_new_tokens=140):
+    """Run one turn through Gemma 4 and return the model's raw final-answer text.
+
+    Gemma 4's chat template supports a "thinking" mode gated by an
+    `<|think|>` control token in the system prompt. We leave it disabled
+    (enable_thinking=False) since a museum guide doesn't need visible
+    chain-of-thought and it only costs extra tokens/latency here. On the
+    E2B/E4B checkpoints, disabling thinking means no reasoning-channel tags
+    are emitted at all, so the decoded text is already just the answer.
+    """
+    processor = _processor()
+    model = _model()
+
+    inputs = processor.apply_chat_template(
+        messages,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt",
+        add_generation_prompt=True,
+        enable_thinking=False,
+    ).to(model.device)
+    input_len = inputs["input_ids"].shape[-1]
+
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        do_sample=False,
+        repetition_penalty=1.18,
+        no_repeat_ngram_size=4,
+    )
+    response = processor.decode(outputs[0][input_len:], skip_special_tokens=True)
+
+    # parse_response strips any residual thinking-channel markup; harmless
+    # no-op when thinking is disabled and the checkpoint emits plain text.
+    if hasattr(processor, "parse_response"):
+        parsed = processor.parse_response(response)
+        if isinstance(parsed, dict):
+            return parsed.get("content", response)
+        if isinstance(parsed, str):
+            return parsed
+    return response
 
 
 def clean_answer(raw, rules):
     """Turn small-model output into one visitor-facing answer.
 
-    SmolLM can occasionally emit role labels, repeat a sentence, or answer as
-    though it is interviewing the visitor. Those are formatting failures, not
-    useful content, so reject them before they reach the UI.
+    Small instruction-tuned models can occasionally emit role labels, repeat
+    a sentence, or answer as though they are interviewing the visitor. Those
+    are formatting failures, not useful content, so reject them before they
+    reach the UI.
     """
     text = str(raw).strip()
     text = re.sub(r"<\|[^>]+\|>|^(assistant|answer)\s*:\s*", "", text, flags=re.I)
@@ -148,14 +207,7 @@ def answer(question, painting, passages):
             "content": f"<artwork>{painting['title']} by {painting['artist']}</artwork>\n<context>{context}</context>\n<visitor_question>{question}</visitor_question>\nRespond directly to the visitor's question using the context as reference data.",
         },
     ]
-    generated = model()(
-        messages,
-        max_new_tokens=140,
-        do_sample=False,
-        repetition_penalty=1.18,
-        no_repeat_ngram_size=4,
-    )[0]["generated_text"]
-    raw = generated[-1]["content"] if isinstance(generated, list) else generated
+    raw = generate(messages)
     return clean_answer(raw, rules)
 
 
