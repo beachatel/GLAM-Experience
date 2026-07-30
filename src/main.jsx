@@ -26,14 +26,20 @@ function Icon({ name }) {
     ),
     micActive: (
       <>
-        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" />
+        <path
+          d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"
+          fill="currentColor"
+        />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" y1="19" x2="12" y2="22" />
         <line x1="8" y1="22" x2="16" y2="22" />
       </>
     ),
     sparkle: (
-      <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
+      <path
+        d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
+        fill="currentColor"
+      />
     ),
   };
   return (
@@ -75,13 +81,11 @@ function LoadingSpinner({ size = 18, color = "currentColor" }) {
 // Custom Museum Guide Loading Indicator Bubble designed to match the gallery aesthetic
 function GuideLoadingIndicator() {
   return (
-    <div className="guide guide-loading-bubble" role="status" aria-label="Your guide is thinking">
-      <div className="loading-icon-wrapper">
-        <div className="bg-ring" />
-        <div className="inner-sparkle">
-          <Icon name="sparkle" />
-        </div>
-      </div>
+    <div
+      className="guide guide-loading-bubble"
+      role="status"
+      aria-label="Your guide is thinking"
+    >
       <div className="loading-text-container">
         <span>Your guide is thinking</span>
         <div className="typing-dots" aria-hidden="true">
@@ -185,7 +189,14 @@ function useSpeechToText({ onResult }) {
 
   const dismissError = () => setError(null);
 
-  return { listening, toggleListening, stopListening, error, supported, dismissError };
+  return {
+    listening,
+    toggleListening,
+    stopListening,
+    error,
+    supported,
+    dismissError,
+  };
 }
 
 function Scanner({ onFound }) {
@@ -352,7 +363,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <p>{painting?.museum || "Museum Guide"}</p>
+        <p>{painting?.museum || "Temp name"}</p>
         <nav aria-label="App navigation">
           <button
             className={page === "artwork" && painting ? "active" : ""}
@@ -392,8 +403,8 @@ function App() {
           <p className="eyebrow">About</p>
           <h1>Personalised answers to your questions</h1>
           <p>
-            Museum Guide pairs each artifact with a small, curated knowledge
-            base. Ask questions to explore the work at your own pace.
+            temp project name pairs each artifact with a small, curated
+            knowledge base. Ask questions to explore the work at your own pace.
           </p>
           <p>
             Answers are generated from the sources chosen by the curators of the
@@ -488,7 +499,11 @@ function App() {
                   <span className="speech-dot" />
                   <span>Listening... Speak your question now</span>
                 </div>
-                <button type="button" className="speech-stop-btn" onClick={stopListening}>
+                <button
+                  type="button"
+                  className="speech-stop-btn"
+                  onClick={stopListening}
+                >
                   Done
                 </button>
               </div>
@@ -496,7 +511,11 @@ function App() {
             {speechError && (
               <div className="speech-status-bar error">
                 <span>{speechError}</span>
-                <button type="button" className="speech-dismiss-btn" onClick={dismissSpeechError}>
+                <button
+                  type="button"
+                  className="speech-dismiss-btn"
+                  onClick={dismissSpeechError}
+                >
                   ✕
                 </button>
               </div>
@@ -516,8 +535,8 @@ function App() {
                   listening
                     ? "Listening to your voice..."
                     : asking
-                    ? "Your guide is thinking…"
-                    : "Ask about this artwork"
+                      ? "Your guide is thinking…"
+                      : "Ask about this artwork"
                 }
               />
               <button
@@ -525,7 +544,11 @@ function App() {
                 className={`mic-button ${listening ? "listening" : ""}`}
                 onClick={toggleListening}
                 disabled={asking}
-                aria-label={listening ? "Stop voice recording" : "Speech to text voice input"}
+                aria-label={
+                  listening
+                    ? "Stop voice recording"
+                    : "Speech to text voice input"
+                }
                 title={listening ? "Stop recording" : "Ask using voice"}
               >
                 <Icon name={listening ? "micActive" : "mic"} />
@@ -547,4 +570,3 @@ function App() {
 }
 
 createRoot(document.getElementById("root")).render(<App />);
-
