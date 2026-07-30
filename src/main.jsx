@@ -16,12 +16,176 @@ function Icon({ name }) {
         <path d="M12 11v5M12 8h.01" />
       </>
     ),
+    mic: (
+      <>
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+        <line x1="8" y1="22" x2="16" y2="22" />
+      </>
+    ),
+    micActive: (
+      <>
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" fill="currentColor" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+        <line x1="8" y1="22" x2="16" y2="22" />
+      </>
+    ),
+    sparkle: (
+      <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="currentColor" />
+    ),
   };
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       {paths[name]}
     </svg>
   );
+}
+
+// Dedicated loading spinner component for buttons & general loading
+function LoadingSpinner({ size = 18, color = "currentColor" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="spinner"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" strokeOpacity="0.2" />
+      <path d="M12 3a9 9 0 0 1 9 9" stroke={color} strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+// Custom Museum Guide Loading Indicator Bubble designed to match the gallery aesthetic
+function GuideLoadingIndicator() {
+  return (
+    <div className="guide guide-loading-bubble" role="status" aria-label="Your guide is thinking">
+      <div className="loading-icon-wrapper">
+        <div className="bg-ring" />
+        <div className="inner-sparkle">
+          <Icon name="sparkle" />
+        </div>
+      </div>
+      <div className="loading-text-container">
+        <span>Your guide is thinking</span>
+        <div className="typing-dots" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Custom Speech-to-Text hook using native Web Speech API (free speech recognition)
+function useSpeechToText({ onResult }) {
+  const [listening, setListening] = useState(false);
+  const [error, setError] = useState(null);
+  const [supported, setSupported] = useState(true);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSupported(false);
+    }
+  }, []);
+
+  const startListening = () => {
+    setError(null);
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSupported(false);
+      setError("Speech-to-Text is not supported in this browser.");
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (_) {}
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (onResult && transcript) {
+          onResult(transcript);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        setListening(false);
+        if (event.error === "not-allowed") {
+          setError("Microphone permission denied. Please allow mic access.");
+        } else if (event.error !== "no-speech" && event.error !== "aborted") {
+          setError(`Speech recognition error: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      setListening(false);
+      setError("Could not start speech recognition.");
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+    }
+    setListening(false);
+  };
+
+  const toggleListening = () => {
+    if (listening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const dismissError = () => setError(null);
+
+  return { listening, toggleListening, stopListening, error, supported, dismissError };
 }
 
 function Scanner({ onFound }) {
@@ -127,6 +291,17 @@ function App() {
   const [asking, setAsking] = useState(false);
   const [scanError, setScanError] = useState("");
 
+  const {
+    listening,
+    toggleListening,
+    stopListening,
+    error: speechError,
+    supported: speechSupported,
+    dismissError: dismissSpeechError,
+  } = useSpeechToText({
+    onResult: (transcript) => setQuestion(transcript),
+  });
+
   const loadPainting = async (id) => {
     const cleanId = id
       .trim()
@@ -144,9 +319,11 @@ function App() {
     setPage("artwork");
     setScanError("");
   };
+
   const ask = async (value = question) => {
     const text = value.trim();
     if (!text || asking || !painting) return;
+    if (listening) stopListening();
     setMessages((current) => [...current, { author: "you", text }]);
     setQuestion("");
     setAsking(true);
@@ -175,7 +352,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <p>{painting?.museum || "temp project name__"}</p>
+        <p>{painting?.museum || "Museum Guide"}</p>
         <nav aria-label="App navigation">
           <button
             className={page === "artwork" && painting ? "active" : ""}
@@ -215,7 +392,7 @@ function App() {
           <p className="eyebrow">About</p>
           <h1>Personalised answers to your questions</h1>
           <p>
-            temp name__ pairs each artifact with a small, curated knowledge
+            Museum Guide pairs each artifact with a small, curated knowledge
             base. Ask questions to explore the work at your own pace.
           </p>
           <p>
@@ -264,7 +441,7 @@ function App() {
             <p className="intro">
               Ask about the symbols, materials, or story behind this work.
             </p>
-            {messages.length === 0 ? (
+            {messages.length === 0 && !asking ? (
               <div className="prompts">
                 {painting.prompts.map((prompt) => (
                   <button key={prompt} onClick={() => ask(prompt)}>
@@ -298,31 +475,71 @@ function App() {
                     )}
                   </div>
                 ))}
+
+                {/* Custom loading indicator added when waiting for AI answer */}
+                {asking && <GuideLoadingIndicator />}
               </div>
             )}
           </section>
-          <form
-            className="composer"
-            onSubmit={(event) => {
-              event.preventDefault();
-              ask();
-            }}
-          >
-            <input
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              disabled={asking}
-              placeholder={
-                asking ? "Your guide is thinking…" : "Ask about this artwork"
-              }
-            />
-            <button
-              className={question.trim() && !asking ? "ready" : ""}
-              disabled={asking}
+          <div className="composer-container">
+            {listening && (
+              <div className="speech-status-bar listening">
+                <div>
+                  <span className="speech-dot" />
+                  <span>Listening... Speak your question now</span>
+                </div>
+                <button type="button" className="speech-stop-btn" onClick={stopListening}>
+                  Done
+                </button>
+              </div>
+            )}
+            {speechError && (
+              <div className="speech-status-bar error">
+                <span>{speechError}</span>
+                <button type="button" className="speech-dismiss-btn" onClick={dismissSpeechError}>
+                  ✕
+                </button>
+              </div>
+            )}
+            <form
+              className="composer"
+              onSubmit={(event) => {
+                event.preventDefault();
+                ask();
+              }}
             >
-              ↑
-            </button>
-          </form>
+              <input
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                disabled={asking}
+                placeholder={
+                  listening
+                    ? "Listening to your voice..."
+                    : asking
+                    ? "Your guide is thinking…"
+                    : "Ask about this artwork"
+                }
+              />
+              <button
+                type="button"
+                className={`mic-button ${listening ? "listening" : ""}`}
+                onClick={toggleListening}
+                disabled={asking}
+                aria-label={listening ? "Stop voice recording" : "Speech to text voice input"}
+                title={listening ? "Stop recording" : "Ask using voice"}
+              >
+                <Icon name={listening ? "micActive" : "mic"} />
+              </button>
+              <button
+                type="submit"
+                className={question.trim() && !asking ? "ready" : ""}
+                disabled={asking || !question.trim()}
+                aria-label="Send message"
+              >
+                {asking ? <LoadingSpinner size={16} color="#ffffff" /> : "↑"}
+              </button>
+            </form>
+          </div>
         </>
       )}
     </main>
@@ -330,3 +547,4 @@ function App() {
 }
 
 createRoot(document.getElementById("root")).render(<App />);
+

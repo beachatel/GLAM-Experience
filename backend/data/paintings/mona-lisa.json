@@ -1,0 +1,50 @@
+{
+  "id": "mona-lisa",
+  "title": "Mona Lisa",
+  "artist": "Leonardo da Vinci",
+  "date": "1503–1506",
+  "movement": "Italian Renaissance",
+  "museum": "The Louvre, Paris, France",
+  "image": "https://upload.wikimedia.org/wikipedia/commons/7/73/Leonardo_da_Vinci_-_Mona_Lisa_%28Louvre%2C_Paris%29.jpg",
+  "medium": "Oil on poplar panel",
+  "dimensions": "77 cm × 53 cm",
+  "prompts": [
+    "Why does she look at me like that?",
+    "Who is the woman?",
+    "Why is this painting so important?",
+    "How was it stolen?",
+    "What makes her smile so famous?"
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Mona Lisa",
+      "url": "https://en.wikipedia.org/wiki/Mona_Lisa",
+      "text": "Leonardo da Vinci began the Mona Lisa in Florence around 1503 and may have kept revising it until close to his death in 1519. Painted in oil on a poplar wood panel, it shows a half-length seated woman set against an imaginary mountainous landscape. It is one of the most visited, written about, and reproduced paintings in the world, and it has held one of the highest insurance valuations ever recorded for an artwork."
+    },
+    {
+      "title": "Britannica: Mona Lisa",
+      "url": "https://www.britannica.com/topic/Mona-Lisa-painting",
+      "text": "The painting's formal title at the Louvre is Portrait of Lisa Gherardini, wife of Francesco del Giocondo, reflecting the long-standing theory that Leonardo's sitter was the wife of a Florentine silk merchant. Biographer Giorgio Vasari first proposed this identification in 1550, three decades after Leonardo's death, and other theories about the sitter still circulate among historians. The sitter's uncertain identity, together with her expression, has kept the portrait a subject of ongoing scholarly investigation."
+    },
+    {
+      "title": "Artnet: The Theft that Made the Mona Lisa Famous",
+      "url": "https://news.artnet.com/art-world/art-bites-mona-lisa-louvre-heist-2708512",
+      "text": "The scandal that rocked Paris in 1911, when criminals took off with the museum’s most treasured possession: Leonardo da Vinci’s Mona Lisa."
+    },
+    {
+      "title": "Wikipedia: Sfumato",
+      "url": "https://en.wikipedia.org/wiki/Sfumato",
+      "text": "Sfumato is a painting technique, closely associated with Leonardo da Vinci, of building up many thin, translucent layers of glaze so that colors and tones blend into one another without a hard outline. In the Mona Lisa he used it especially around the eyes and corners of the mouth, softening her expression so it can look like a slight smile from one angle and more neutral from another. Leonardo also broke from the stiff profile portraits common at the time, turning his sitter into a relaxed three-quarter pose with her folded hands forming a stable, pyramid-like base to the composition."
+    },
+    {
+      "title": "Google Arts & Culture: Mona Lisa provenance",
+      "url": "https://artsandculture.google.com/asset/portrait-of-lisa-gherardini-wife-of-francesco-del-giocondo-known-as-monna-lisa-la-gioconda-or-mona-lisa-1503-1519-leonardo-di-ser-piero-da-vinci-dit-l%C3%A9onard-de-vinci-1452-1519-paris-mus%C3%A9e-du-louvre/uQGZ28lYUJ3OGw?hl=en",
+      "text": "The panel measures about 77 by 53 centimetres, notably smaller than most first-time visitors expect. Leonardo carried the unfinished portrait with him for years rather than delivering it to a client, and King Francis I of France acquired it in 1518, bringing it into the French royal collection. That royal ownership is why the painting stayed in France, eventually entering the Louvre's collection after the French Revolution."
+    },
+    {
+      "title": "Mona Lisa at the Louvre: viewing guide",
+      "url": "https://www.paristickets.com/louvre-museum/mona-lisa/",
+      "text": "Since 2005 the Mona Lisa has hung alone in the middle of the Salle des États, the Louvre's largest room, enclosed in a climate-controlled, bulletproof glass case. This isolated, protected display reflects both the painting's fragility as a five-century-old wood panel and the enormous daily crowds who come to see it, making it one of the most heavily secured artworks on public display anywhere."
+    }
+  ]
+}
